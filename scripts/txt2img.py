@@ -15,6 +15,7 @@ from contextlib import contextmanager, nullcontext
 from ldm.util import instantiate_from_config
 from ldm.models.diffusion.ddim import DDIMSampler
 from ldm.models.diffusion.plms import PLMSSampler
+from scripts.prompt_lang import eval_prompt_expression
 
 
 def chunk(it, size):
@@ -233,7 +234,14 @@ def main():
                             uc = model.get_learned_conditioning(batch_size * [""])
                         if isinstance(prompts, tuple):
                             prompts = list(prompts)
-                        c = model.get_learned_conditioning(prompts)
+
+                        prompt = prompts[0]
+                        if "*" in prompt:
+                            embed_text = lambda x: model.get_learned_conditioning(batch_size * [x])
+                            c = eval_prompt_expression(prompt, embed_text)
+                        else:
+                            c = model.get_learned_conditioning(prompts)
+                            
                         shape = [opt.C, opt.H // opt.f, opt.W // opt.f]
                         samples_ddim, _ = sampler.sample(S=opt.ddim_steps,
                                                          conditioning=c,

@@ -18,7 +18,7 @@ from pytorch_lightning import seed_everything
 from ldm.util import instantiate_from_config
 from ldm.models.diffusion.ddim import DDIMSampler
 from ldm.models.diffusion.plms import PLMSSampler
-
+from scripts.prompt_lang import eval_prompt_expression
 
 def chunk(it, size):
     it = iter(it)
@@ -253,7 +253,12 @@ def main():
                             uc = model.get_learned_conditioning(batch_size * [""])
                         if isinstance(prompts, tuple):
                             prompts = list(prompts)
-                        c = model.get_learned_conditioning(prompts)
+
+                        if "*" in prompt:
+                            embed_text = lambda x: model.get_learned_conditioning(batch_size * [x])
+                            c = eval_prompt_expression(prompt, embed_text)
+                        else:
+                            c = model.get_learned_conditioning(prompts)
 
                         # encode (scaled latent)
                         z_enc = sampler.stochastic_encode(init_latent, torch.tensor([t_enc]*batch_size).to(device))
